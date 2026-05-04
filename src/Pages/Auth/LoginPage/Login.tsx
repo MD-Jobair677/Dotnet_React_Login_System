@@ -1,41 +1,72 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../../Core/Data/Redux/authSlice';
+import type { AppDispatch } from '../../../Core/Data/Redux/store';
+import { useLoginUserMutation, useRegisterUserMutation } from '../../../Core/Data/Redux/Register';
 import './login.css';
 
-type AuthUser = {
-  id: number;
+type SafeUser = {
+  id?: number | string;
   name: string;
   email: string;
-  phone?: string;
-  password: string;
 };
 
-type SafeUser = Pick<AuthUser, 'id' | 'name' | 'email'>;
 type Mode = 'login' | 'register' | 'success';
 type FormErrors = Record<string, string>;
 
-const USERS_KEY = 'auth_users';
 const SESSION_KEY = 'auth_session';
 
-const getStoredUsers = (): AuthUser[] => {
-  try {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]');
-    return Array.isArray(users) ? users : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveUsers = (users: AuthUser[]) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-};
-
-const makeSafeUser = (user: AuthUser): SafeUser => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
-});
-
 const isEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const readString = (source: Record<string, unknown> | undefined, key: string) => {
+  const value = source?.[key];
+  return typeof value === 'string' ? value : '';
+};
+
+const readId = (source: Record<string, unknown> | undefined) => {
+  const id = source?.id ?? source?.userId;
+  return typeof id === 'string' || typeof id === 'number' ? id : undefined;
+};
+
+const getApiMessage = (error: unknown) => {
+  if (!isRecord(error)) return 'Request failed. Please try again.';
+  const data = error.data;
+
+  if (isRecord(data)) {
+    return readString(data, 'message') || readString(data, 'error') || 'Request failed. Please try again.';
+  }
+
+  return readString(error, 'message') || 'Request failed. Please try again.';
+};
+
+const getAuthData = (response: unknown, fallbackEmail: string, fallbackName = 'User') => {
+  const root = isRecord(response) ? response : {};
+  const data = isRecord(root.data) ? root.data : root;
+  const user = isRecord(data.user) ? data.user : isRecord(root.user) ? root.user : data;
+  const token =
+    readString(data, 'token') ||
+    readString(data, 'accessToken') ||
+    readString(data, 'jwtToken') ||
+    readString(root, 'token') ||
+    readString(root, 'accessToken');
+  const firstName = readString(user, 'firstName');
+  const lastName = readString(user, 'lastName');
+  const name = readString(user, 'name') || [firstName, lastName].filter(Boolean).join(' ') || fallbackName;
+  const email = readString(user, 'email') || fallbackEmail;
+
+  return {
+    token,
+    user,
+    safeUser: {
+      id: readId(user),
+      name,
+      email,
+    } satisfies SafeUser,
+  };
+};
 
 function Field({
   label,
@@ -68,6 +99,8 @@ function Field({
 }
 
 function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; onSwitch: () => void }) {
+  const dispatch = useDispatch<AppDispatch>();
+  const [loginUser, { isLoading }] = useLoginUserMutation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -86,7 +119,7 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
     return nextErrors;
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validate();
 
@@ -95,21 +128,24 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
       return;
     }
 
-    const user = getStoredUsers().find(
-      (item) => item.email.toLowerCase() === email.trim().toLowerCase() && item.password === password,
-    );
+    try {
+      const response = await loginUser({ email: email.trim(), password }).unwrap();
+      const authData = getAuthData(response, email.trim());
 
-    if (!user) {
-      setErrors({ general: 'Email or password is incorrect' });
-      return;
+      if (authData.token) {
+        dispatch(setCredentials({ token: authData.token, user: authData.user }));
+      }
+
+      if (remember) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(authData.safeUser));
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+
+      onLogin(authData.safeUser);
+    } catch (error) {
+      setErrors({ general: getApiMessage(error) });
     }
-
-    const safeUser = makeSafeUser(user);
-    if (remember) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(safeUser));
-    }
-
-    onLogin(safeUser);
   };
 
   return (
@@ -156,8 +192,8 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
         <span>Remember me</span>
       </label>
 
-      <button className="auth-submit" type="submit">
-        Login
+      <button className="auth-submit" type="submit" disabled={isLoading}>
+        {isLoading ? 'Logging in...' : 'Login'}
       </button>
 
       <p className="auth-switch">
@@ -171,12 +207,14 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
 }
 
 function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
-  const [name, setName] = useState('');
+  const [registerUser, { isLoading }] = useRegisterUserMutation();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const strength = useMemo(() => {
     let score = 0;
@@ -191,8 +229,11 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
   const validate = () => {
     const nextErrors: FormErrors = {};
 
-    if (!name.trim()) nextErrors.name = 'Name is required';
-    else if (name.trim().length < 2) nextErrors.name = 'Name must be at least 2 characters';
+    if (!firstName.trim()) nextErrors.firstName = 'First name is required';
+    else if (firstName.trim().length < 2) nextErrors.firstName = 'First name must be at least 2 characters';
+
+    if (!lastName.trim()) nextErrors.lastName = 'Last name is required';
+    else if (lastName.trim().length < 2) nextErrors.lastName = 'Last name must be at least 2 characters';
 
     if (!email.trim()) nextErrors.email = 'Email is required';
     else if (!isEmail(email)) nextErrors.email = 'Enter a valid email address';
@@ -206,7 +247,7 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
     return nextErrors;
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validate();
 
@@ -215,26 +256,19 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
       return;
     }
 
-    const users = getStoredUsers();
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
-      setErrors({ general: 'An account already exists with this email' });
-      return;
-    }
-
-    saveUsers([
-      ...users,
-      {
-        id: Date.now(),
-        name: name.trim(),
-        email: normalizedEmail,
-        phone: phone.trim(),
+    try {
+      await registerUser({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
         password,
-      },
-    ]);
+      }).unwrap();
 
-    onSwitch();
+      setSuccessMessage('Registration successful. Please login now.');
+      setTimeout(() => onSwitch(), 700);
+    } catch (error) {
+      setErrors({ general: getApiMessage(error) });
+    }
   };
 
   return (
@@ -246,16 +280,29 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       {errors.general && <div className="auth-alert">{errors.general}</div>}
+      {successMessage && <div className="auth-notice">{successMessage}</div>}
 
       <Field
-        label="Full name"
-        value={name}
+        label="First Name"
+        value={firstName}
         onChange={(event) => {
-          setName(event.target.value);
-          setErrors((current) => ({ ...current, name: '', general: '' }));
+          setFirstName(event.target.value);
+          setSuccessMessage('');
+          setErrors((current) => ({ ...current, firstName: '', general: '' }));
         }}
-        error={errors.name}
-        autoComplete="name"
+        error={errors.firstName}
+        autoComplete="given-name"
+      />
+      <Field
+        label="Last Name"
+        value={lastName}
+        onChange={(event) => {
+          setLastName(event.target.value);
+          setSuccessMessage('');
+          setErrors((current) => ({ ...current, lastName: '', general: '' }));
+        }}
+        error={errors.lastName}
+        autoComplete="family-name"
       />
       <Field
         label="Email"
@@ -263,24 +310,20 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
         value={email}
         onChange={(event) => {
           setEmail(event.target.value);
+          setSuccessMessage('');
           setErrors((current) => ({ ...current, email: '', general: '' }));
         }}
         error={errors.email}
         autoComplete="email"
       />
-      <Field
-        label="Phone"
-        type="tel"
-        value={phone}
-        onChange={(event) => setPhone(event.target.value)}
-        autoComplete="tel"
-      />
+     
       <Field
         label="Password"
         type="password"
         value={password}
         onChange={(event) => {
           setPassword(event.target.value);
+          setSuccessMessage('');
           setErrors((current) => ({ ...current, password: '', general: '' }));
         }}
         error={errors.password}
@@ -301,14 +344,15 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
         value={confirmPassword}
         onChange={(event) => {
           setConfirmPassword(event.target.value);
+          setSuccessMessage('');
           setErrors((current) => ({ ...current, confirmPassword: '', general: '' }));
         }}
         error={errors.confirmPassword}
         autoComplete="new-password"
       />
 
-      <button className="auth-submit" type="submit">
-        Register
+      <button className="auth-submit" type="submit" disabled={isLoading}>
+        {isLoading ? 'Registering...' : 'Register'}
       </button>
 
       <p className="auth-switch">
@@ -352,6 +396,7 @@ export const Login = () => {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem('token');
     setMode('login');
   };
 
