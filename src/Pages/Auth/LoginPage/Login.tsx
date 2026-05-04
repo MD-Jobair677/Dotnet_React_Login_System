@@ -44,25 +44,50 @@ const getApiMessage = (error: unknown) => {
 };
 
 const getAuthData = (response: unknown, fallbackEmail: string, fallbackName = 'User') => {
-  const root = isRecord(response) ? response : {};
-  const data = isRecord(root.data) ? root.data : root;
-  const user = isRecord(data.user) ? data.user : isRecord(root.user) ? root.user : data;
+  const asRecord = (value: unknown): Record<string, unknown> | null => (isRecord(value) ? value : null);
+
+  const root = asRecord(response) ?? {};
+  const dataFromLower = asRecord(root['data']);
+  const dataFromPascal = asRecord(root['Data']);
+
+  const dataCandidate = dataFromLower ?? dataFromPascal ?? root;
+
+  const getString = (obj: Record<string, unknown>, key: string): string => {
+    const v = obj[key];
+    return typeof v === 'string' ? v : '';
+  };
+
   const token =
-    readString(data, 'token') ||
-    readString(data, 'accessToken') ||
-    readString(data, 'jwtToken') ||
-    readString(root, 'token') ||
-    readString(root, 'accessToken');
-  const firstName = readString(user, 'firstName');
-  const lastName = readString(user, 'lastName');
-  const name = readString(user, 'name') || [firstName, lastName].filter(Boolean).join(' ') || fallbackName;
-  const email = readString(user, 'email') || fallbackEmail;
+    getString(dataCandidate, 'token') ||
+    getString(dataCandidate, 'accessToken') ||
+    getString(dataCandidate, 'jwtToken');
+
+  const email =
+    getString(dataCandidate, 'email') ||
+    getString(dataCandidate, 'Email') ||
+    getString(root, 'email') ||
+    getString(root, 'Email') ||
+    fallbackEmail;
+
+  const firstName =
+    getString(dataCandidate, 'firstName') ||
+    getString(dataCandidate, 'FirstName');
+
+  const lastName =
+    getString(dataCandidate, 'lastName') ||
+    getString(dataCandidate, 'LastName');
+
+  const name =
+    getString(dataCandidate, 'name') ||
+    getString(root, 'name') ||
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    fallbackName;
 
   return {
     token,
-    user,
+    user: dataCandidate,
     safeUser: {
-      id: readId(user),
+      id: readId(dataCandidate),
       name,
       email,
     } satisfies SafeUser,
@@ -133,9 +158,12 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
       const response = await loginUser({ email: email.trim(), password }).unwrap();
       const authData = getAuthData(response, email.trim());
 
-      if (authData.token) {
-        dispatch(setCredentials({ token: authData.token, user: authData.user }));
+      if (!authData.token) {
+        setErrors({ general: 'Login failed: token not found.' });
+        return;
       }
+
+      dispatch(setCredentials({ token: authData.token, user: authData.user }));
 
       if (remember) {
         localStorage.setItem(SESSION_KEY, JSON.stringify(authData.safeUser));
@@ -209,11 +237,12 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
 
 function RegisterForm({
   onSwitch,
-  onRegistered,
+  onAutoLogin,
 }: {
   onSwitch: () => void;
-  onRegistered: () => void;
+  onAutoLogin: (user: SafeUser) => void;
 }) {
+  const dispatch = useDispatch<AppDispatch>();
   const [registerUser, { isLoading }] = useRegisterUserMutation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -264,15 +293,25 @@ function RegisterForm({
     }
 
     try {
-      await registerUser({
+      const response = await registerUser({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
         password,
       }).unwrap();
 
-      setSuccessMessage('Registration successful. Redirecting to dashboard...');
-      onRegistered();
+      const fallbackName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || 'User';
+      const authData = getAuthData(response, email.trim(), fallbackName);
+
+      if (authData.token) {
+        dispatch(setCredentials({ token: authData.token, user: authData.user }));
+        localStorage.setItem(SESSION_KEY, JSON.stringify(authData.safeUser));
+        onAutoLogin(authData.safeUser);
+        return;
+      }
+
+      setSuccessMessage('Registration successful. Please login now.');
+      setTimeout(() => onSwitch(), 700);
     } catch (error) {
       setErrors({ general: getApiMessage(error) });
     }
@@ -389,6 +428,9 @@ function SuccessScreen({ user, onLogout }: { user: SafeUser; onLogout: () => voi
 export const Login = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<SafeUser | null>(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
     try {
       const savedUser = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as SafeUser | null;
       if (savedUser?.id && savedUser.name && savedUser.email) {
@@ -410,7 +452,7 @@ export const Login = () => {
   };
 
   useEffect(() => {
-    if (mode === 'success' && user) {
+    if (mode === 'success' && user && localStorage.getItem('token')) {
       navigate('/dashboard', { replace: true });
     }
   }, [mode, user, navigate]);
@@ -442,7 +484,10 @@ export const Login = () => {
         {mode === 'register' && (
           <RegisterForm
             onSwitch={() => setMode('login')}
-            onRegistered={() => navigate('/dashboard', { replace: true })}
+            onAutoLogin={(safeUser) => {
+              setUser(safeUser);
+              setMode('success');
+            }}
           />
         )}
         {mode === 'success' && user && <SuccessScreen user={user} onLogout={handleLogout} />}

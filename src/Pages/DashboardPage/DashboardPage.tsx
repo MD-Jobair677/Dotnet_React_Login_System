@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
+import { logout } from '../../Core/Data/Redux/authSlice';
+import type { AppDispatch } from '../../Core/Data/Redux/store';
+import StudentsCrud from './StudentsCrud/StudentsCrud';
 
 type NavItem = {
   id: string;
@@ -38,6 +43,7 @@ const navItems: NavItem[] = [
   { id: 'orders', label: 'Orders', icon: 'OR' },
   { id: 'products', label: 'Products', icon: 'PR' },
   { id: 'customers', label: 'Customers', icon: 'CU' },
+  { id: 'students', label: 'Students', icon: 'ST' },
   { id: 'messages', label: 'Messages', icon: 'MS', badge: 8 },
   { id: 'settings', label: 'Settings', icon: 'SE' },
 ];
@@ -263,8 +269,17 @@ function PlaceholderPage({ active }: { active: string }) {
 }
 
 export default function DashboardPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+
   const [active, setActive] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    localStorage.removeItem('auth_session');
+    navigate('/login', { replace: true });
+  };
 
   return (
     <main className="dashboard-page">
@@ -281,16 +296,27 @@ export default function DashboardPage() {
             <span>Search</span>
             <input type="search" placeholder="Search..." />
           </label>
-          <div className="profile-pill">
-            <span>RH</span>
-            <div>
-              <strong>Rakib Hasan</strong>
-              <small>Admin</small>
+
+          <div className="profile-pill" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>RH</span>
+              <div>
+                <strong>Rakib Hasan</strong>
+                <small>Admin</small>
+              </div>
+            </div>
+
+            <div className="heading-actions" style={{ marginLeft: 'auto' }}>
+              <button type="button" onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </div>
         </header>
 
-        {active === 'overview' ? <OverviewPage /> : <PlaceholderPage active={active} />}
+        {active === 'overview' && <OverviewPage />}
+        {active === 'students' && <StudentsCrud />}
+        {active !== 'overview' && active !== 'students' && <PlaceholderPage active={active} />}
       </section>
     </main>
   );
