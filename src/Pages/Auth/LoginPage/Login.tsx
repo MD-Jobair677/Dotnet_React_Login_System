@@ -1,5 +1,6 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { setCredentials } from '../../../Core/Data/Redux/authSlice';
 import type { AppDispatch } from '../../../Core/Data/Redux/store';
 import { useLoginUserMutation, useRegisterUserMutation } from '../../../Core/Data/Redux/Register';
@@ -206,7 +207,13 @@ function LoginForm({ onLogin, onSwitch }: { onLogin: (user: SafeUser) => void; o
   );
 }
 
-function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
+function RegisterForm({
+  onSwitch,
+  onRegistered,
+}: {
+  onSwitch: () => void;
+  onRegistered: () => void;
+}) {
   const [registerUser, { isLoading }] = useRegisterUserMutation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -264,8 +271,8 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
         password,
       }).unwrap();
 
-      setSuccessMessage('Registration successful. Please login now.');
-      setTimeout(() => onSwitch(), 700);
+      setSuccessMessage('Registration successful. Redirecting to dashboard...');
+      onRegistered();
     } catch (error) {
       setErrors({ general: getApiMessage(error) });
     }
@@ -380,6 +387,7 @@ function SuccessScreen({ user, onLogout }: { user: SafeUser; onLogout: () => voi
 }
 
 export const Login = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<SafeUser | null>(() => {
     try {
       const savedUser = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as SafeUser | null;
@@ -398,7 +406,14 @@ export const Login = () => {
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem('token');
     setMode('login');
+    navigate('/login', { replace: true });
   };
+
+  useEffect(() => {
+    if (mode === 'success' && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [mode, user, navigate]);
 
   return (
     <main className="login-page">
@@ -424,7 +439,12 @@ export const Login = () => {
           />
         )}
 
-        {mode === 'register' && <RegisterForm onSwitch={() => setMode('login')} />}
+        {mode === 'register' && (
+          <RegisterForm
+            onSwitch={() => setMode('login')}
+            onRegistered={() => navigate('/dashboard', { replace: true })}
+          />
+        )}
         {mode === 'success' && user && <SuccessScreen user={user} onLogout={handleLogout} />}
       </section>
     </main>
