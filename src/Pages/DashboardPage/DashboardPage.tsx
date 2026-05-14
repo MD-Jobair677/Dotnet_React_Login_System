@@ -5,6 +5,8 @@ import './Dashboard.css';
 import { logout } from '../../Core/Data/Redux/authSlice';
 import type { AppDispatch } from '../../Core/Data/Redux/store';
 import StudentsCrud from './StudentsCrud/StudentsCrud';
+import RolesCrud from './RolesCrud/RolesCrud';
+import PermissionsCrud from './PermissionsCrud/PermissionsCrud';
 
 type NavItem = {
   id: string;
@@ -38,14 +40,9 @@ type Product = {
 };
 
 const navItems: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: 'DB' },
-  { id: 'analytics', label: 'Analytics', icon: 'AN' },
-  { id: 'orders', label: 'Orders', icon: 'OR' },
-  { id: 'products', label: 'Products', icon: 'PR' },
-  { id: 'customers', label: 'Customers', icon: 'CU' },
   { id: 'students', label: 'Students', icon: 'ST' },
-  { id: 'messages', label: 'Messages', icon: 'MS', badge: 8 },
-  { id: 'settings', label: 'Settings', icon: 'SE' },
+  { id: 'Role', label: 'Role Management', icon: 'RL' },
+  { id: 'permissions', label: 'Permissions', icon: 'PM' },
 ];
 
 const stats: StatItem[] = [
@@ -316,7 +313,9 @@ export default function DashboardPage() {
 
         {active === 'overview' && <OverviewPage />}
         {active === 'students' && <StudentsCrud />}
-        {active !== 'overview' && active !== 'students' && <PlaceholderPage active={active} />}
+        {active === 'Role' && <RolesCrud />}
+        {active === 'permissions' && <PermissionsCrud />}
+        {active !== 'overview' && active !== 'students' && active !== 'Role' && active !== 'permissions' && <PlaceholderPage active={active} />}
       </section>
     </main>
   );
