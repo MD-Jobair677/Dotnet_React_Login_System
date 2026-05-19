@@ -26,8 +26,11 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
+          <Route index path="/" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+
           <Route element={<AppLayout />}>
-            <Route index path="/" element={<Home />} />
+
 
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
@@ -51,11 +54,11 @@ export default function App() {
             {/* Charts */}
             <Route path="/line-chart" element={<LineChart />} />
             <Route path="/bar-chart" element={<BarChart />} />
+               <Route path="/dashboard" element={<Home />} />
           </Route>
 
           {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
+       
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
