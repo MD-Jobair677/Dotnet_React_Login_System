@@ -4,19 +4,58 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useEffect, useState } from "react";
+import { useUpdateUserProfileMutation } from "../../Core/Data/Redux/Profile";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const [userEmail, setUserEmail] = useState("user@example.com");
+  const [firstName, setFirstName] = useState("Md");
+  const [lastName, setLastName] = useState("Arif");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
+  const [updateProfile, { isLoading }] = useUpdateUserProfileMutation();
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
+    const storedFirstName = localStorage.getItem("firstName");
+    const storedLastName = localStorage.getItem("lastName");
+    const storedPhone = localStorage.getItem("phone");
+    const storedBio = localStorage.getItem("bio");
     if (storedEmail) setUserEmail(storedEmail);
+    if (storedFirstName) setFirstName(storedFirstName);
+    if (storedLastName) setLastName(storedLastName);
+    if (storedPhone) setPhone(storedPhone);
+    if (storedBio) setBio(storedBio);
   }, []);
 
-  const handleSave = () => {
-    closeModal();
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("firstName", firstName);
+      formData.append("lastName", lastName);
+      formData.append("email", userEmail);
+      formData.append("phone", phone);
+      formData.append("bio", bio);
+
+      const response = await updateProfile(formData).unwrap();
+      
+      if (response?.user) {
+        localStorage.setItem("userEmail", response.user.email);
+        localStorage.setItem("firstName", response.user.firstName);
+        localStorage.setItem("lastName", response.user.lastName);
+      }
+      
+      if (response?.profile) {
+        localStorage.setItem("phone", response.profile.phone || "");
+        localStorage.setItem("bio", response.profile.bio || "");
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
   };
+
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -31,7 +70,7 @@ export default function UserInfoCard() {
                 First Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Md
+                {firstName}
               </p>
             </div>
 
@@ -40,7 +79,7 @@ export default function UserInfoCard() {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Arif
+                {lastName}
               </p>
             </div>
 
@@ -58,7 +97,7 @@ export default function UserInfoCard() {
                 Phone
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +09 363 398 46
+                {phone || "+09 363 398 46"}
               </p>
             </div>
 
@@ -67,7 +106,7 @@ export default function UserInfoCard() {
                 Bio
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Team Manager
+                {bio || "Team Manager"}
               </p>
             </div>
           </div>
@@ -108,39 +147,6 @@ export default function UserInfoCard() {
           </div>
           <form className="flex flex-col">
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div>
-                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Social Links
-                </h5>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div>
-                    <Label>Facebook</Label>
-                    <Input
-                      type="text"
-                      value="https://www.facebook.com/PimjoHQ"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>X.com</Label>
-                    <Input type="text" value="https://x.com/PimjoHQ" />
-                  </div>
-
-                  <div>
-                    <Label>Linkedin</Label>
-                    <Input
-                      type="text"
-                      value="https://www.linkedin.com/company/pimjo"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Instagram</Label>
-                    <Input type="text" value="https://instagram.com/PimjoHQ" />
-                  </div>
-                </div>
-              </div>
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
@@ -149,27 +155,47 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" value="Md" />
+                    <Input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" value="Arif" />
+                    <Input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Email Address</Label>
-                    <Input type="text" value={userEmail} />
+                    <Input
+                      type="text"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Phone</Label>
-                    <Input type="text" value="+09 363 398 46" />
+                    <Input
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2">
                     <Label>Bio</Label>
-                    <Input type="text" value="Team Manager" />
+                    <Input
+                      type="text"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
@@ -178,8 +204,8 @@ export default function UserInfoCard() {
               <Button size="sm" variant="outline" onClick={closeModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

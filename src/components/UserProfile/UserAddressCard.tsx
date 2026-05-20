@@ -3,14 +3,57 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useEffect, useState } from "react";
+import { useUpdateUserProfileMutation } from "../../Core/Data/Redux/Profile";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const [address, setAddress] = useState("Phoenix, Arizona, United States.");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [bio, setBio] = useState("");
+  const [updateProfile, { isLoading }] = useUpdateUserProfileMutation();
+
+  useEffect(() => {
+    const storedAddress = localStorage.getItem("address");
+    const storedPhone = localStorage.getItem("phone");
+    const storedGender = localStorage.getItem("gender");
+    const storedDob = localStorage.getItem("dateOfBirth");
+    const storedBio = localStorage.getItem("bio");
+
+    if (storedAddress) setAddress(storedAddress);
+    if (storedPhone) setPhone(storedPhone);
+    if (storedGender) setGender(storedGender);
+    if (storedDob) setDateOfBirth(storedDob);
+    if (storedBio) setBio(storedBio);
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("address", address);
+      formData.append("phone", phone);
+      formData.append("gender", gender);
+      formData.append("dateOfBirth", dateOfBirth);
+      formData.append("bio", bio);
+
+      const response = await updateProfile(formData).unwrap();
+
+      if (response?.profile) {
+        localStorage.setItem("address", response.profile.address || "");
+        localStorage.setItem("phone", response.profile.phone || "");
+        localStorage.setItem("gender", response.profile.gender || "");
+        localStorage.setItem("dateOfBirth", response.profile.dateOfBirth || "");
+        localStorage.setItem("bio", response.profile.bio || "");
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
   };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -23,37 +66,46 @@ export default function UserAddressCard() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
+                  Address
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
+                  {address}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Phone
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
+                  {phone || "Not set"}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
+                  Gender
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
+                  {gender || "Not set"}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
+                  Date of Birth
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {dateOfBirth || "Not set"}
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                  Bio
+                </p>
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                  {bio || "Not set"}
                 </p>
               </div>
             </div>
@@ -86,7 +138,7 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Edit Profile Details
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Update your details to keep your profile up-to-date.
@@ -95,24 +147,49 @@ export default function UserAddressCard() {
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" value="United States" />
+                <div className="col-span-2">
+                  <Label>Address</Label>
+                  <Input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
                 </div>
 
                 <div>
-                  <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
+                  <Label>Phone</Label>
+                  <Input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
                 </div>
 
                 <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
+                  <Label>Gender</Label>
+                  <Input
+                    type="text"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                  />
                 </div>
 
                 <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
+                  <Label>Date of Birth</Label>
+                  <Input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label>Bio</Label>
+                  <Input
+                    type="text"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -120,8 +197,8 @@ export default function UserAddressCard() {
               <Button size="sm" variant="outline" onClick={closeModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
