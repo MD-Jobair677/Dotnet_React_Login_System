@@ -28,10 +28,29 @@ export default function SignUpForm() {
         password,
       }).unwrap();
 
-      const data = response as { token?: string; access_token?: string };
-      if (data?.token || data?.access_token) {
-        localStorage.setItem("token", data.token || data.access_token!);
+      const data = response as {
+        success?: boolean;
+        message?: string;
+        data?: {
+          userFirstName?: string;
+          userLastName?: string;
+          userEmail?: string;
+          token?: string;
+        };
+        token?: string;
+      };
+
+      const token = data?.data?.token || data?.token;
+      if (token) {
+        localStorage.setItem("token", token);
       }
+      if (data?.data?.userFirstName) {
+        localStorage.setItem("userName", data.data.userFirstName);
+      } else {
+        localStorage.setItem("userName", firstName);
+      }
+      localStorage.setItem("userEmail", data?.data?.userEmail || email);
+
       navigate("/dashboard");
     } catch (err) {
       console.error("Registration failed:", err);
