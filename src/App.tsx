@@ -17,6 +17,7 @@ import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import Home from "./pages/Dashboard/Home";
 import AddRole from "./pages/Roles/AddRole";
 import Permission from "./pages/Roles/Permission";
@@ -32,7 +33,13 @@ export default function App() {
           <Route index path="/" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
 
-          <Route element={<AppLayout />}>
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
 
 
             {/* Others Page */}

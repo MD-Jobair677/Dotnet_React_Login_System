@@ -6,9 +6,12 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useLoginUserMutation } from "../../Core/Data/Redux/Register";
+import { setCredentials } from "../../Core/Data/Redux/authSlice";
+import { useAppDispatch } from "../../Core/Data/Redux/store";
 
 export default function SignInForm() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [email, setEmail] = useState("");
@@ -20,32 +23,23 @@ export default function SignInForm() {
     e.preventDefault();
 
     try {
-      const response = await loginUser({ email, password }).unwrap();
+      const result = await loginUser({ email, password }).unwrap();
 
-      const data = response as {
-        success?: boolean;
-        message?: string;
-        data?: {
-          userFirstName?: string;
-          userLastName?: string;
-          userEmail?: string;
-          token?: string;
-        };
-        token?: string;
-      };
+      const apiData =
+        (result as { data?: { token?: string; userFirstName?: string; userEmail?: string }; token?: string; success?: boolean }).data ??
+        result;
 
-      const token = data?.data?.token || data?.token;
+      const token = (apiData as { token?: string }).token;
       if (token) {
-        localStorage.setItem("token", token);
+        dispatch(setCredentials({ token, user: null }));
       }
-      if (data?.data?.userFirstName) {
-        localStorage.setItem("userName", data.data.userFirstName);
-      } else {
-        localStorage.setItem("userName", email.split("@")[0]);
-      }
-      localStorage.setItem("userEmail", data?.data?.userEmail || email);
+      localStorage.setItem(
+        "userName",
+        (apiData as { userFirstName?: string }).userFirstName || email.split("@")[0]
+      );
+      localStorage.setItem("userEmail", (apiData as { userEmail?: string }).userEmail || email);
 
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login failed:", err);
     }
@@ -129,8 +123,8 @@ export default function SignInForm() {
               <div className="space-y-6">
                 {error && (
                   <div className="p-3 text-sm text-error-600 bg-error-50 rounded-lg dark:bg-error-500/10">
-                    {"status" in error && "data" in error
-                      ? (error.data as { message?: string })?.message || "Login failed"
+                    {"status" in (error as Record<string, unknown>) && "data" in (error as Record<string, unknown>)
+                      ? ((error as { data?: { message?: string } }).data as { message?: string })?.message || "Login failed"
                       : "Login failed"}
                   </div>
                 )}
@@ -182,8 +176,18 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign in"}
+                  <Button className="w-full" size="sm" type="submit" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign in"
+                    )}
                   </Button>
                 </div>
               </div>

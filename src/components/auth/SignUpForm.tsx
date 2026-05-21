@@ -5,9 +5,12 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import { useRegisterUserMutation } from "../../Core/Data/Redux/Register";
+import { setCredentials } from "../../Core/Data/Redux/authSlice";
+import { useAppDispatch } from "../../Core/Data/Redux/store";
 
 export default function SignUpForm() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -42,7 +45,7 @@ export default function SignUpForm() {
 
       const token = data?.data?.token || data?.token;
       if (token) {
-        localStorage.setItem("token", token);
+        dispatch(setCredentials({ token, user: null }));
       }
       if (data?.data?.userFirstName) {
         localStorage.setItem("userName", data.data.userFirstName);
@@ -51,7 +54,7 @@ export default function SignUpForm() {
       }
       localStorage.setItem("userEmail", data?.data?.userEmail || email);
 
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Registration failed:", err);
     }
