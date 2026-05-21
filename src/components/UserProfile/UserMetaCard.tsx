@@ -6,16 +6,35 @@ import Label from "../form/Label";
 import { useEffect, useState } from "react";
 import { useUpdateUserProfileMutation } from "../../Core/Data/Redux/Profile";
 
+const baseUrl = import.meta.env.VITE_IMG_BASE_URL || "http://localhost:8000";
+const defaultAvatarPath = "/images/user/owner.jpg";
+
+const normalizeAvatarPath = (path?: string | null) => {
+  if (!path) return defaultAvatarPath;
+
+  if (path.startsWith(baseUrl)) {
+    return path.slice(baseUrl.length) || defaultAvatarPath;
+  }
+
+  return path.startsWith("/") ? path : `/${path}`;
+};
+
+const getAvatarUrl = (path?: string | null) => {
+  const normalizedPath = normalizeAvatarPath(path);
+  return `${baseUrl}${normalizedPath}`;
+};
+
 export default function UserMetaCard() {
+  
   const { isOpen, openModal, closeModal } = useModal();
   const [userName, setUserName] = useState("User");
   const [userEmail, setUserEmail] = useState("user@example.com");
   const [firstName, setFirstName] = useState("User");
   const [lastName, setLastName] = useState("");
-  const [avatarPath, setAvatarPath] = useState("/images/user/owner.jpg");
+  const [avatarPath, setAvatarPath] = useState(defaultAvatarPath);
+ 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [updateProfile, { isLoading }] = useUpdateUserProfileMutation();
-
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedEmail = localStorage.getItem("userEmail");
@@ -27,7 +46,11 @@ export default function UserMetaCard() {
     if (storedEmail) setUserEmail(storedEmail);
     if (storedFirstName) setFirstName(storedFirstName);
     if (storedLastName) setLastName(storedLastName);
-    if (storedAvatar) setAvatarPath(storedAvatar);
+    if (storedAvatar) {
+      const normalizedPath = normalizeAvatarPath(storedAvatar);
+      localStorage.setItem("avatarPath", normalizedPath);
+      setAvatarPath(normalizedPath);
+    }
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +58,7 @@ export default function UserMetaCard() {
       setSelectedFile(e.target.files[0]);
     }
   };
+
 
   const handleSave = async () => {
     try {
@@ -44,7 +68,7 @@ export default function UserMetaCard() {
       formData.append("email", userEmail);
       
       if (selectedFile) {
-        formData.append("file", selectedFile);
+        formData.append("Path", selectedFile);
       }
 
       const response = await updateProfile(formData).unwrap();
@@ -57,15 +81,16 @@ export default function UserMetaCard() {
       }
       
       if (response?.asset) {
-        localStorage.setItem("avatarPath", response.asset.path);
-        setAvatarPath(response.asset.path);
+        const normalizedPath = normalizeAvatarPath(response.asset.path);
+        localStorage.setItem("avatarPath", normalizedPath);
+        setAvatarPath(normalizedPath);
       }
-
       setSelectedFile(null);
       closeModal();
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
+
   };
 
   return (
@@ -74,7 +99,7 @@ export default function UserMetaCard() {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
             <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <img src={avatarPath} alt="user" />
+              <img src={getAvatarUrl(avatarPath)} alt="user" className="h-full w-full object-cover" />
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
@@ -199,6 +224,8 @@ export default function UserMetaCard() {
           </button>
         </div>
       </div>
+
+      
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
@@ -251,6 +278,13 @@ export default function UserMetaCard() {
                       accept="image/*"
                       onChange={handleFileChange}
                     />
+                    {selectedFile && (
+                      <img
+                        src={URL.createObjectURL(selectedFile)}
+                        alt="Preview"
+                        className="mt-2 w-20 h-20 object-cover rounded-full"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
