@@ -9,6 +9,8 @@ type ApiResponse<T> = {
 export type Role = {
   id: number;
   name: string;
+  description?: string | null;
+  permissions?: string[];
 };
 
 export const rolesApi = baseApi.injectEndpoints({
@@ -27,7 +29,7 @@ export const rolesApi = baseApi.injectEndpoints({
       },
     }),
 
-    createRole: builder.mutation<ApiResponse<unknown>, { name: string }>({
+    createRole: builder.mutation<ApiResponse<unknown>, { name: string; description?: string }>({
       query: (body) => ({
         url: 'Roles',
         method: 'POST',
@@ -36,11 +38,11 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: ['Roles'],
     }),
 
-    updateRole: builder.mutation<ApiResponse<unknown>, { id: number; name: string }>({
-      query: ({ id, name }) => ({
+    updateRole: builder.mutation<ApiResponse<unknown>, { id: number; name: string; description?: string }>({
+      query: ({ id, name, description }) => ({
         url: `Roles/${id}`,
         method: 'PUT',
-        body: { name },
+        body: { name, description },
       }),
       invalidatesTags: ['Roles'],
     }),

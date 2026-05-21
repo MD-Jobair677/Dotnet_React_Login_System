@@ -5,24 +5,7 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useEffect, useState } from "react";
 import { useUpdateUserProfileMutation } from "../../Core/Data/Redux/Profile";
-
-const baseUrl = import.meta.env.VITE_IMG_BASE_URL || "http://localhost:8000";
-const defaultAvatarPath = "/images/user/owner.jpg";
-
-const normalizeAvatarPath = (path?: string | null) => {
-  if (!path) return defaultAvatarPath;
-
-  if (path.startsWith(baseUrl)) {
-    return path.slice(baseUrl.length) || defaultAvatarPath;
-  }
-
-  return path.startsWith("/") ? path : `/${path}`;
-};
-
-const getAvatarUrl = (path?: string | null) => {
-  const normalizedPath = normalizeAvatarPath(path);
-  return `${baseUrl}${normalizedPath}`;
-};
+import { getAvatarUrl, getStoredAvatarPath, saveAvatarPath } from "../../utils/avatar";
 
 export default function UserMetaCard() {
   
@@ -31,7 +14,7 @@ export default function UserMetaCard() {
   const [userEmail, setUserEmail] = useState("user@example.com");
   const [firstName, setFirstName] = useState("User");
   const [lastName, setLastName] = useState("");
-  const [avatarPath, setAvatarPath] = useState(defaultAvatarPath);
+  const [avatarPath, setAvatarPath] = useState(getStoredAvatarPath);
  
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [updateProfile, { isLoading }] = useUpdateUserProfileMutation();
@@ -47,9 +30,7 @@ export default function UserMetaCard() {
     if (storedFirstName) setFirstName(storedFirstName);
     if (storedLastName) setLastName(storedLastName);
     if (storedAvatar) {
-      const normalizedPath = normalizeAvatarPath(storedAvatar);
-      localStorage.setItem("avatarPath", normalizedPath);
-      setAvatarPath(normalizedPath);
+      setAvatarPath(saveAvatarPath(storedAvatar));
     }
   }, []);
 
@@ -81,9 +62,7 @@ export default function UserMetaCard() {
       }
       
       if (response?.asset) {
-        const normalizedPath = normalizeAvatarPath(response.asset.path);
-        localStorage.setItem("avatarPath", normalizedPath);
-        setAvatarPath(normalizedPath);
+        setAvatarPath(saveAvatarPath(response.asset.path));
       }
       setSelectedFile(null);
       closeModal();

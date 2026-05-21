@@ -18,6 +18,9 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import AddRole from "./pages/Roles/AddRole";
+import Permission from "./pages/Roles/Permission";
+import AddRoleToUser from "./pages/Roles/AddRoleToUser";
 
 export default function App() {
   return (
@@ -36,6 +39,9 @@ export default function App() {
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
+            <Route path="/add-role" element={<AddRole />} />
+            <Route path="/add-role-to-user" element={<AddRoleToUser />} />
+            <Route path="/permission" element={<Permission />} />
 
             {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />

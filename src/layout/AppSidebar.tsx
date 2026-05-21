@@ -7,8 +7,10 @@ import {
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
+  GroupIcon,
   HorizontaLDots,
   ListIcon,
+  LockIcon,
   PageIcon,
   PieChartIcon,
   PlugInIcon,
@@ -40,6 +42,21 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "User Profile",
     path: "/profile",
+  },
+  {
+    icon: <GroupIcon />,
+    name: "Add Role",
+    path: "/add-role",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Add Role To User",
+    path: "/add-role-to-user",
+  },
+  {
+    icon: <LockIcon />,
+    name: "Permission",
+    path: "/permission",
   },
   {
     name: "Forms",

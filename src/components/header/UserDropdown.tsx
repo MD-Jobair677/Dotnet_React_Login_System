@@ -1,17 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useNavigate } from "react-router";
 import { logout } from "../../Core/Data/Redux/authSlice";
+import { avatarUpdatedEvent, getAvatarUrl, getStoredAvatarPath } from "../../utils/avatar";
 
 export default function UserDropdown() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarPath, setAvatarPath] = useState(getStoredAvatarPath);
 
   const userName = localStorage.getItem("userName") || "User";
   const userEmail = localStorage.getItem("userEmail") || "user@example.com";
+
+  useEffect(() => {
+    const syncAvatar = () => setAvatarPath(getStoredAvatarPath());
+
+    window.addEventListener(avatarUpdatedEvent, syncAvatar);
+    window.addEventListener("storage", syncAvatar);
+
+    return () => {
+      window.removeEventListener(avatarUpdatedEvent, syncAvatar);
+      window.removeEventListener("storage", syncAvatar);
+    };
+  }, []);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -34,7 +48,7 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+          <img src={getAvatarUrl(avatarPath)} alt="User" className="h-full w-full object-cover" />
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">{userName}</span>
