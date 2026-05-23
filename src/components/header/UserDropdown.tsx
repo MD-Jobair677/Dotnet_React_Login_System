@@ -11,8 +11,8 @@ export default function UserDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarPath, setAvatarPath] = useState(getStoredAvatarPath);
-const firstName = localStorage.getItem("firstName") || "";
-const lastName = localStorage.getItem("lastName") || "";
+  const firstName = localStorage.getItem("firstName") || "";
+  const lastName = localStorage.getItem("lastName") || "";
   const userName = `${firstName} ${lastName}`.trim() || "User";
   const userEmail = localStorage.getItem("userEmail") || "user@example.com";
 
@@ -54,9 +54,8 @@ const lastName = localStorage.getItem("lastName") || "";
 
         <span className="block mr-1 font-medium text-theme-sm">{userName}</span>
         <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            }`}
           width="18"
           height="20"
           viewBox="0 0 18 20"
