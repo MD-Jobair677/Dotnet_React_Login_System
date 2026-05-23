@@ -12,6 +12,19 @@ export type LoginPayload = {
   password: string;
 };
 
+export type LoginResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    userFirstName: string;
+    userLastName: string;
+    userEmail: string;
+    userRoles: string[];
+    userPermissions: string[];
+    token: string;
+  };
+};
+
 export const registerApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     registerUser: builder.mutation<unknown, RegisterPayload>({
@@ -22,7 +35,7 @@ export const registerApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
-    loginUser: builder.mutation<unknown, LoginPayload>({
+    loginUser: builder.mutation<LoginResponse, LoginPayload>({
       query: (loginData) => ({
         url: 'Auth/login',
         method: 'POST',

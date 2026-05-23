@@ -9,23 +9,20 @@ import { getAvatarUrl, getStoredAvatarPath, saveAvatarPath } from "../../utils/a
 
 export default function UserMetaCard() {
   
-  const { isOpen, openModal, closeModal } = useModal();
-  const [userName, setUserName] = useState("User");
-  const [userEmail, setUserEmail] = useState("user@example.com");
+const { isOpen, openModal, closeModal } = useModal();
+   const [userEmail, setUserEmail] = useState("user@example.com");
   const [firstName, setFirstName] = useState("User");
   const [lastName, setLastName] = useState("");
   const [avatarPath, setAvatarPath] = useState(getStoredAvatarPath);
  
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [updateProfile, { isLoading }] = useUpdateUserProfileMutation();
-  useEffect(() => {
-    const storedName = localStorage.getItem("userName");
+useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
     const storedFirstName = localStorage.getItem("firstName");
     const storedLastName = localStorage.getItem("lastName");
     const storedAvatar = localStorage.getItem("avatarPath");
     
-    if (storedName) setUserName(storedName);
     if (storedEmail) setUserEmail(storedEmail);
     if (storedFirstName) setFirstName(storedFirstName);
     if (storedLastName) setLastName(storedLastName);
@@ -42,7 +39,7 @@ export default function UserMetaCard() {
 
 const UserfirstName = localStorage.getItem("firstName") || "User";
 const UserlastName = localStorage.getItem("lastName") || "";
-
+console.log(localStorage);
 const UserFullName = `${UserfirstName} ${UserlastName}`.trim() || "User";
   const handleSave = async () => {
     try {
@@ -57,12 +54,11 @@ const UserFullName = `${UserfirstName} ${UserlastName}`.trim() || "User";
 
       const response = await updateProfile(formData).unwrap();
       
-      if (response?.user) {
-        localStorage.setItem("userEmail", response.user.email);
-        localStorage.setItem("firstName", response.user.firstName);
-        localStorage.setItem("lastName", response.user.lastName);
-        setUserName(`${response.user.firstName} ${response.user.lastName}`);
-      }
+if (response?.user) {
+         localStorage.setItem("userEmail", response.user.email);
+         localStorage.setItem("firstName", response.user.firstName);
+         localStorage.setItem("lastName", response.user.lastName);
+       }
       
       if (response?.asset) {
         setAvatarPath(saveAvatarPath(response.asset.path));

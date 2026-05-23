@@ -26,18 +26,28 @@ export default function SignInForm() {
       const result = await loginUser({ email, password }).unwrap();
 
       const apiData =
-        (result as { data?: { token?: string; userFirstName?: string; userEmail?: string }; token?: string; success?: boolean }).data ??
+        (result as { data?: { token?: string; userFirstName?: string; userEmail?: string; userLastName?: string; userRoles?: string[]; userPermissions?: string[] }; token?: string; success?: boolean }).data ??
         result;
 
       const token = (apiData as { token?: string }).token;
       if (token) {
-        dispatch(setCredentials({ token, user: null }));
+        const userData = {
+          firstName: (apiData as { userFirstName?: string }).userFirstName,
+          lastName: (apiData as { userLastName?: string }).userLastName,
+          email: (apiData as { userEmail?: string }).userEmail,
+          roles: (apiData as { userRoles?: string[] }).userRoles,
+          permissions: (apiData as { userPermissions?: string[] }).userPermissions,
+        };
+        dispatch(setCredentials({ token, user: userData }));
       }
       localStorage.setItem(
         "userName",
         (apiData as { userFirstName?: string }).userFirstName || email.split("@")[0]
       );
       localStorage.setItem("userEmail", (apiData as { userEmail?: string }).userEmail || email);
+      localStorage.setItem("firstName", (apiData as { userFirstName?: string }).userFirstName ?? "");
+      const ln = (apiData as { userLastName?: string }).userLastName;
+      localStorage.setItem("lastName", (ln != null && ln !== "null") ? ln : "");
 
       navigate("/dashboard", { replace: true });
     } catch (err) {

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
+import Unauthorized from "./pages/OtherPage/Unauthorized";
 import UserProfiles from "./pages/UserProfiles";
 import Videos from "./pages/UiElements/Videos";
 import Images from "./pages/UiElements/Images";
@@ -41,16 +42,28 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-
-
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
-            <Route path="/add-role" element={<AddRole />} />
-            <Route path="/add-role-to-user" element={<AddRoleToUser />} />
+
+            {/* Permission Protected Routes */}
+            <Route path="/add-role" element={
+              <ProtectedRoute requiredPermission="Role.Create">
+                <AddRole />
+              </ProtectedRoute>
+            } />
+            <Route path="/add-role-to-user" element={
+              <ProtectedRoute requiredPermission="User.Update">
+                <AddRoleToUser />
+              </ProtectedRoute>
+            } />
+            <Route path="/permission" element={
+              <ProtectedRoute requiredPermission="Role.View">
+                <Permission />
+              </ProtectedRoute>
+            } />
             <Route path="/students" element={<Students />} />
-            <Route path="/permission" element={<Permission />} />
 
             {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />
@@ -69,11 +82,11 @@ export default function App() {
             {/* Charts */}
             <Route path="/line-chart" element={<LineChart />} />
             <Route path="/bar-chart" element={<BarChart />} />
-               <Route path="/dashboard" element={<Home />} />
+            <Route path="/dashboard" element={<Home />} />
           </Route>
 
-          {/* Auth Layout */}
-       
+          {/* Unauthorized Page */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
