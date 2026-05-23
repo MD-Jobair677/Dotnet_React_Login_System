@@ -22,6 +22,7 @@ import Home from "./pages/Dashboard/Home";
 import AddRole from "./pages/Roles/AddRole";
 import Permission from "./pages/Roles/Permission";
 import AddRoleToUser from "./pages/Roles/AddRoleToUser";
+import Students from "./pages/Students/Students";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/blank" element={<Blank />} />
             <Route path="/add-role" element={<AddRole />} />
             <Route path="/add-role-to-user" element={<AddRoleToUser />} />
+            <Route path="/students" element={<Students />} />
             <Route path="/permission" element={<Permission />} />
 
             {/* Forms */}

@@ -11,8 +11,9 @@ export default function UserDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarPath, setAvatarPath] = useState(getStoredAvatarPath);
-
-  const userName = localStorage.getItem("userName") || "User";
+const firstName = localStorage.getItem("firstName") || "";
+const lastName = localStorage.getItem("lastName") || "";
+  const userName = `${firstName} ${lastName}`.trim() || "User";
   const userEmail = localStorage.getItem("userEmail") || "user@example.com";
 
   useEffect(() => {
