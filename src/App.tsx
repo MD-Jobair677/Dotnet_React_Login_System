@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
+import ForgetPassword from "./pages/AuthPages/ForgetPassword";
+import AuthLayout from "./pages/AuthPages/AuthPageLayout";
 import NotFound from "./pages/OtherPage/NotFound";
 import Unauthorized from "./pages/OtherPage/Unauthorized";
 import UserProfiles from "./pages/UserProfiles";
@@ -31,9 +33,10 @@ export default function App() {
       <Router>
         <ScrollToTop />
         <Routes>
-          {/* Dashboard Layout */}
-          <Route index path="/" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
+            {/* Dashboard Layout */}
+            <Route index path="/" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<AuthLayout><ForgetPassword /></AuthLayout>} />
 
           <Route
             element={
